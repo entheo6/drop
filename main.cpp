@@ -71,6 +71,8 @@ int main()
 
 		if ((GetAsyncKeyState(VK_RBUTTON) & 0x8000) && !mouseDownR)
 		{
+			mouseDownR = true;
+
 			if (controlDown)	// control right click - craft
 				craftRockets();
 

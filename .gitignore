@@ -1,0 +1,4 @@
+*.vcxproj* 
+/Debug
+/Release/*
+!/Release/*.exe
