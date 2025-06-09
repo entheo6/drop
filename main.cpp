@@ -39,7 +39,7 @@ bool bAbort = false;
 std::atomic<bool> moving = false,
 firing = false;
 
-static const int NUM_KEYS = 8;
+static const int NUM_KEYS = 9;
 
 const int COMMON_X = 680,
 INVENTORY_Y = 710,
@@ -74,6 +74,7 @@ void holdRightClick(int);
 void craftRockets();
 void moveRockets();
 void craftBlocks();
+void craftConcrete();
 void look(LOOK_DIR);
 void holdKey(WORD, int);
 void gridMove(vec2, bool);
@@ -88,7 +89,8 @@ enum KEYS
 	MOUSE_RIGHT,
 	F9,
 	NUMPAD1,
-	NUMPAD2
+	NUMPAD2,
+	NUMPAD3
 };
 
 int main()
@@ -145,6 +147,13 @@ int main()
 			keyDown[NUMPAD2] = true;
 		}
 
+		// Numpad 2 (craft blocks)
+		if ((GetAsyncKeyState(VK_NUMPAD3) & 0x8000) && !keyDown[NUMPAD3])
+		{
+			craftConcrete();
+			keyDown[NUMPAD3] = true;
+		}
+
 		// Reset keyDown
 		if (!(GetAsyncKeyState(VK_ESCAPE) & 0x8000) && keyDown[ESCAPE])
 			keyDown[ESCAPE] = false;
@@ -169,6 +178,9 @@ int main()
 
 		if (!(GetAsyncKeyState(VK_NUMPAD2) & 0x8000) && keyDown[NUMPAD2])
 			keyDown[NUMPAD2] = false;
+
+		if (!(GetAsyncKeyState(VK_NUMPAD3) & 0x8000) && keyDown[NUMPAD3])
+			keyDown[NUMPAD3] = false;
 	}
 
 	// Program terminated indicator
@@ -199,7 +211,8 @@ void init()
 	consoleText += "  [ctrl + left click] : Drop inventory item\n\n";
 
 	consoleText += "  [numpad 1] : Craft rockets\n";
-	consoleText += "  [numpad 2] : Craft blocks\n\n";
+	consoleText += "  [numpad 2] : Craft blocks\n";
+	consoleText += "  [numpad 3] : Craft concrete\n\n";
 
 	consoleText += "  [esc] : Abort current operation\n";
 	consoleText += "  [ctrl + backspace] : Terminate\n";
@@ -343,25 +356,6 @@ void craftRockets()
 	}
 }
 
-void moveRockets()
-{
-	Sleep(SLEEP_DURATION_INIT);
-
-	for (int i = 0; i < NUM_COLUMNS; ++i)
-	{
-		for (int j = 0; j < NUM_ROWS - 1; ++j)
-		{
-			if (GetAsyncKeyState(VK_ESCAPE) & 0x8000)
-				break;
-
-			Sleep(THROTTLE_CELL);
-			shiftClick((COMMON_X + ((i)*INCREMENT_X)), COORD_MAP_Y[j]);
-		}
-
-		Sleep(THROTTLE_COLUMN);
-	}
-}
-
 void craftBlocks()
 {
 	Sleep(SLEEP_DURATION_INIT);
@@ -381,9 +375,29 @@ void craftBlocks()
 
 		if (i == 2 || i == 5 || i == 8)
 		{
-			shiftClick(CRAFT_X, CRAFT_Y);
 			Sleep(THROTTLE_COLUMN + rand() % 50 - 25);
+			shiftClick(CRAFT_X, CRAFT_Y);
 		}
+	}
+}
+
+void craftConcrete()
+{
+	Sleep(SLEEP_DURATION_INIT);
+
+	for (int i = 1; i < NUM_ROWS; ++i)
+	{
+		if (GetAsyncKeyState(VK_ESCAPE) & 0x8000)
+			break;
+
+		for (int j = 0; j < NUM_COLUMNS; ++j)
+		{
+			Sleep(THROTTLE_CELL + rand() % 10 - 5);
+			shiftClick((COMMON_X + ((j)*INCREMENT_X)), COORD_MAP_Y[i]);
+		}
+
+		Sleep(THROTTLE_COLUMN + rand() % 100 - 25);
+		shiftClick(CRAFT_X, CRAFT_Y);
 	}
 }
 
