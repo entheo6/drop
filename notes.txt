@@ -1,0 +1,2 @@
+-- v1.01
+Disable item drop and crafting if game window isn't focused.

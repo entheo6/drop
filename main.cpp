@@ -66,6 +66,7 @@ vec2 currentGridPos = vec2(0, 0);
 
 void init();
 void pollVisibility();
+bool gameFocused();
 void escape();
 void click(int, int);
 void rightClick(int, int);
@@ -118,40 +119,43 @@ int main()
 
 		// Control + backspace (abort)
 		if (keyDown[CONTROL] && GetAsyncKeyState(VK_BACK))
-			break;
+			break;	
 
-		// Control click (drop)
-		if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) && !keyDown[MOUSE_LEFT])
+		if (gameFocused())
 		{
-			if (keyDown[CONTROL])
+			// Control click (drop)
+			if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) && !keyDown[MOUSE_LEFT])
 			{
-				GetCursorPos(&downPos);
-				Sleep(75);
-				click(DROP_X, downPos.y);
-				SetCursorPos(downPos.x, downPos.y);
-				keyDown[MOUSE_LEFT] = true;
+				if (keyDown[CONTROL])
+				{
+					GetCursorPos(&downPos);
+					Sleep(75);
+					click(DROP_X, downPos.y);
+					SetCursorPos(downPos.x, downPos.y);
+					keyDown[MOUSE_LEFT] = true;
+				}
 			}
-		}
 
-		// Numpad 1 (craft rockets)
-		if ((GetAsyncKeyState(VK_NUMPAD1) & 0x8000) && !keyDown[NUMPAD1])
-		{
-			craftRockets();
-			keyDown[NUMPAD1] = true;
-		}
+			// Numpad 1 (craft rockets)
+			if ((GetAsyncKeyState(VK_NUMPAD1) & 0x8000) && !keyDown[NUMPAD1])
+			{
+				craftRockets();
+				keyDown[NUMPAD1] = true;
+			}
 
-		// Numpad 2 (craft blocks)
-		if ((GetAsyncKeyState(VK_NUMPAD2) & 0x8000) && !keyDown[NUMPAD2])
-		{
-			craftBlocks();
-			keyDown[NUMPAD2] = true;
-		}
+			// Numpad 2 (craft blocks)
+			if ((GetAsyncKeyState(VK_NUMPAD2) & 0x8000) && !keyDown[NUMPAD2])
+			{
+				craftBlocks();
+				keyDown[NUMPAD2] = true;
+			}
 
-		// Numpad 2 (craft blocks)
-		if ((GetAsyncKeyState(VK_NUMPAD3) & 0x8000) && !keyDown[NUMPAD3])
-		{
-			craftConcrete();
-			keyDown[NUMPAD3] = true;
+			// Numpad 3 (craft concrete)
+			if ((GetAsyncKeyState(VK_NUMPAD3) & 0x8000) && !keyDown[NUMPAD3])
+			{
+				craftConcrete();
+				keyDown[NUMPAD3] = true;
+			}
 		}
 
 		// Reset keyDown
@@ -242,6 +246,29 @@ void pollVisibility()
 
 		Sleep(THROTTLE_DEFAULT);
 	}
+}
+
+bool gameFocused()
+{
+	const int MAX_LENGTH = 256;
+	char title[MAX_LENGTH];
+
+	HWND hwnd = GetForegroundWindow();
+
+	int length = GetWindowTextA(hwnd, title, MAX_LENGTH);
+
+	if (length)
+	{
+		std::string str(title);
+
+		for (int i = 0; i < str.length(); ++i)
+			str[i] = std::toupper(str[i]);
+
+		if (str.find("MINECRAFT") != std::string::npos)
+			return true;
+	}
+
+	return false;
 }
 
 void escape()
