@@ -5,6 +5,7 @@
 #include <thread>
 #include <atomic>
 #include <cmath>
+#include <unordered_map>
 #include <Windows.h>
 
 enum LOOK_DIR
@@ -64,7 +65,7 @@ const int COORD_MAP_Y[] = { HOTBAR_Y,  INVENTORY_Y, (INVENTORY_Y - INCREMENT_Y),
 
 vec2 currentGridPos = vec2(0, 0);
 
-void init();
+void initWindow();
 void pollVisibility();
 bool gameFocused();
 void escape();
@@ -73,7 +74,6 @@ void rightClick(int, int);
 void shiftClick(int, int);
 void holdRightClick(int);
 void craftRockets();
-void moveRockets();
 void craftBlocks();
 void craftConcrete();
 void look(LOOK_DIR);
@@ -81,26 +81,29 @@ void holdKey(WORD, int);
 void gridMove(vec2, bool);
 void rapidFire(int);
 
-enum KEYS
-{
-	ESCAPE,
-	CONTROL,
-	BACKSPACE,
-	MOUSE_LEFT,
-	MOUSE_RIGHT,
-	F9,
-	NUMPAD1,
-	NUMPAD2,
-	NUMPAD3
-};
+std::vector<unsigned int> virtualKeys = {
+											VK_ESCAPE,
+											VK_LCONTROL,
+											VK_BACK,
+											VK_F9,
+										    VK_LBUTTON,
+											VK_RBUTTON,
+											VK_NUMPAD1,
+											VK_NUMPAD2,
+											VK_NUMPAD3
+										};
 
 int main()
 {
-	init();
-
-	bool keyDown[NUM_KEYS];
 	const int DROP_X = 1550;
 	POINT downPos;
+
+	std::unordered_map<unsigned int, bool> keyDown;
+
+	for (int i = 0; i < virtualKeys.size(); ++i)
+		keyDown[virtualKeys[i]] = false;
+
+	initWindow();
 
 	// Program started indicator
 	Beep(700, 200);
@@ -114,77 +117,56 @@ int main()
 		Sleep(10);
 
 		// Complementary keys
-		if ((GetAsyncKeyState(VK_LCONTROL) & 0x8000) && !keyDown[CONTROL])
-			keyDown[CONTROL] = true;
+		if ((GetAsyncKeyState(VK_LCONTROL) & 0x8000) && !keyDown[VK_LCONTROL])
+			keyDown[VK_LCONTROL] = true;
 
 		// Control + backspace (abort)
-		if (keyDown[CONTROL] && GetAsyncKeyState(VK_BACK))
+		if (keyDown[VK_LCONTROL] && GetAsyncKeyState(VK_BACK))
 			break;	
 
 		if (gameFocused())
 		{
 			// Control click (drop)
-			if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) && !keyDown[MOUSE_LEFT])
+			if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) && !keyDown[VK_LBUTTON])
 			{
-				if (keyDown[CONTROL])
+				if (keyDown[VK_LCONTROL])
 				{
 					GetCursorPos(&downPos);
 					Sleep(75);
 					click(DROP_X, downPos.y);
 					SetCursorPos(downPos.x, downPos.y);
-					keyDown[MOUSE_LEFT] = true;
+					keyDown[VK_LBUTTON] = true;
 				}
 			}
 
 			// Numpad 1 (craft rockets)
-			if ((GetAsyncKeyState(VK_NUMPAD1) & 0x8000) && !keyDown[NUMPAD1])
+			if ((GetAsyncKeyState(VK_NUMPAD1) & 0x8000) && !keyDown[VK_NUMPAD1])
 			{
 				craftRockets();
-				keyDown[NUMPAD1] = true;
+				keyDown[VK_NUMPAD1] = true;
 			}
 
 			// Numpad 2 (craft blocks)
-			if ((GetAsyncKeyState(VK_NUMPAD2) & 0x8000) && !keyDown[NUMPAD2])
+			if ((GetAsyncKeyState(VK_NUMPAD2) & 0x8000) && !keyDown[VK_NUMPAD2])
 			{
 				craftBlocks();
-				keyDown[NUMPAD2] = true;
+				keyDown[VK_NUMPAD2] = true;
 			}
 
 			// Numpad 3 (craft concrete)
-			if ((GetAsyncKeyState(VK_NUMPAD3) & 0x8000) && !keyDown[NUMPAD3])
+			if ((GetAsyncKeyState(VK_NUMPAD3) & 0x8000) && !keyDown[VK_NUMPAD3])
 			{
 				craftConcrete();
-				keyDown[NUMPAD3] = true;
+				keyDown[VK_NUMPAD3] = true;
 			}
 		}
 
-		// Reset keyDown
-		if (!(GetAsyncKeyState(VK_ESCAPE) & 0x8000) && keyDown[ESCAPE])
-			keyDown[ESCAPE] = false;
-
-		if (!(GetAsyncKeyState(VK_LCONTROL) & 0x8000) && keyDown[CONTROL])
-			keyDown[CONTROL] = false;
-
-		if (!(GetAsyncKeyState(VK_BACK) & 0x8000) && keyDown[BACKSPACE])
-			keyDown[BACKSPACE] = false;
-
-		if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000) && keyDown[MOUSE_LEFT])
-			keyDown[MOUSE_LEFT] = false;
-
-		if (!(GetAsyncKeyState(VK_RBUTTON) & 0x8000) && keyDown[MOUSE_RIGHT])
-			keyDown[MOUSE_RIGHT] = false;
-
-		if (!(GetAsyncKeyState(VK_F9) & 0x8000) && keyDown[F9])
-			keyDown[F9] = false;
-
-		if (!(GetAsyncKeyState(VK_NUMPAD1) & 0x8000) && keyDown[NUMPAD1])
-			keyDown[NUMPAD1] = false;
-
-		if (!(GetAsyncKeyState(VK_NUMPAD2) & 0x8000) && keyDown[NUMPAD2])
-			keyDown[NUMPAD2] = false;
-
-		if (!(GetAsyncKeyState(VK_NUMPAD3) & 0x8000) && keyDown[NUMPAD3])
-			keyDown[NUMPAD3] = false;
+		// Update keyDown map
+		for (int i = 0; i < virtualKeys.size(); ++i)
+		{
+			if (!(GetAsyncKeyState(virtualKeys[i]) & 0x8000) && keyDown[virtualKeys[i]])
+				keyDown[virtualKeys[i]] = false;
+		}
 	}
 
 	// Program terminated indicator
@@ -203,7 +185,7 @@ int main()
 	return EXIT_SUCCESS;
 }
 
-void init()
+void initWindow()
 {
 	ShowWindow(GetConsoleWindow(), SW_HIDE);
 	system("title drop & color 04");
