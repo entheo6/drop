@@ -1,0 +1,9 @@
+*.vcxproj* 
+/Debug
+/Release/*
+!/Release/*.exe
+*.aps
+*.rc
+*.ico
+resource.h
+github_entheo6_pub
