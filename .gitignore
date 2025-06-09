@@ -1,3 +1,4 @@
+.gitignore
 *.vcxproj* 
 /Debug
 /Release/*
