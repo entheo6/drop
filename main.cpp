@@ -18,7 +18,8 @@ struct vec2
 {
 	int x, y;
 
-	vec2() {}
+	vec2()
+		:x(-1), y(-1){}
 	vec2(int a, int b) { x = a; y = b; }
 };
 
@@ -43,29 +44,33 @@ firing = false;
 static const int NUM_KEYS = 9;
 
 const int COMMON_X = 680,
-INVENTORY_Y = 710,
-STORAGE_Y = 300,
-CHEST_Y = 300,
-HOTBAR_Y = 800,
-CRAFT_X = 1135,
-CRAFT_Y = 370,
-INCREMENT_X = 70,
-INCREMENT_Y = 70,
-NUM_COLUMNS = 9,
-NUM_ROWS = 4,
-SLEEP_DURATION_INIT = 300,
-THROTTLE_CELL = 50,
-THROTTLE_COLUMN = 120,
-THROTTLE_DEFAULT = 50,
-LOOK_DELTA = 192,
-GRID_MOVE_DURATION = 750,
-ARROW_HOLD_DURATION = 200;
+			INVENTORY_Y = 710,
+			STORAGE_Y = 300,
+			CHEST_Y = 300,
+			HOTBAR_Y = 800,
+			CRAFT_X = 1135,
+			CRAFT_Y = 370,
+			INCREMENT_X = 70,
+			INCREMENT_Y = 70,
+			NUM_COLUMNS = 9,
+			NUM_ROWS = 4,
+			SLEEP_DURATION_INIT = 300,
+			THROTTLE_CELL = 50,
+			THROTTLE_COLUMN = 120,
+			THROTTLE_DEFAULT = 50,
+			LOOK_DELTA = 192,
+			GRID_MOVE_DURATION = 750,
+			ARROW_HOLD_DURATION = 200;
 
 const int COORD_MAP_Y[] = { HOTBAR_Y,  INVENTORY_Y, (INVENTORY_Y - INCREMENT_Y), (INVENTORY_Y - (INCREMENT_Y * 2)) };
 
+const char* instanceId = "696E7374616E63652030";
+
+HANDLE mutex;
+
 vec2 currentGridPos = vec2(0, 0);
 
-void initWindow();
+bool initWindow();
 void pollVisibility();
 bool gameFocused();
 void escape();
@@ -98,12 +103,15 @@ int main()
 	const int DROP_X = 1550;
 	POINT downPos;
 
+	// Build key-down map
 	std::unordered_map<unsigned int, bool> keyDown;
 
 	for (int i = 0; i < virtualKeys.size(); ++i)
 		keyDown[virtualKeys[i]] = false;
 
-	initWindow();
+	// Initialize console window, terminate if another instance is running
+	if (initWindow())
+		return EXIT_SUCCESS;
 
 	// Program started indicator
 	Beep(700, 200);
@@ -182,11 +190,22 @@ int main()
 	//	Sleep(50);
 	//}
 
+	ReleaseMutex(mutex);
+	CloseHandle(mutex);
+
 	return EXIT_SUCCESS;
 }
 
-void initWindow()
+bool initWindow()
 {
+	mutex = CreateMutexA(NULL, true, instanceId);
+
+	if (GetLastError() == ERROR_ALREADY_EXISTS)
+	{
+		CloseHandle(mutex);
+		return true;
+	}
+
 	ShowWindow(GetConsoleWindow(), SW_HIDE);
 	system("title drop & color 04");
 
@@ -207,6 +226,8 @@ void initWindow()
 
 	std::thread visibilityThread(pollVisibility);
 	visibilityThread.detach();
+
+	return false;
 }
 
 void pollVisibility()

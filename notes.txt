@@ -1,2 +1,5 @@
 -- v1.01
 Disable item drop and crafting if game window isn't focused.
+
+-- v1.02
+Prevent multiple instances with mutex lock ID check during window initialization.
