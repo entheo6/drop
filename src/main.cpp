@@ -59,7 +59,7 @@ Printer printer(&customActions);
 
 bool soundEnabled = true,
 	borderEnabled = false,
-	startHidden = true;
+	startHidden = false;
 
 std::atomic<bool> moving = false,
 				  firing = false,
