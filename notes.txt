@@ -6,3 +6,6 @@ Prevent multiple instances with mutex lock ID check during window initialization
 
 -- v1.03
 Implement custom actions, update UI, add settings screen, modify directory structure.
+
+-- v1.04
+Implement config persistence.

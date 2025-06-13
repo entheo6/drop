@@ -7,11 +7,8 @@
 #include <limits>
 #include <Windows.h>
 
+#include "vec2.h"
 #include "printer.h"
-
-#ifdef max
-#undef max
-#endif
 
 class CustomActions
 {
@@ -23,25 +20,6 @@ public:
 		LEFT_CLICK,
 		RIGHT_CLICK,
 		SHIFT_CLICK
-	};
-
-	struct vec2
-	{
-		int x, y;
-
-		vec2()
-			:x(-1), y(-1) {}
-		vec2(int a, int b) { x = a; y = b; }
-		vec2& operator=(const vec2& arg)
-		{
-			if (this != &arg)
-			{
-				x = arg.x;
-				y = arg.y;
-			}
-
-			return *this;
-		}
 	};
 
 	struct Action
@@ -92,7 +70,8 @@ private:
 
 	const int THROTTLE_DEFAULT = 100,
 			  PAUSE_DURATION = 1500,
-	          MAX_DELAY = 86400000;
+	          MAX_DELAY = 86400000,
+			  MAX_ID_LENGTH = 32;
 
 	const char* BACK_STRING = "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b                                                                                   \b\b\b	\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b";
 
@@ -105,6 +84,7 @@ private:
 public:
 	CustomActions();
 
+	inline std::vector<Action>& getActions() { return actions; }
 	inline int getNumActions() { return actions.size(); }
 	inline const char* getActionName(int index) { return actions[index].id.c_str(); }
 	inline void remove(int index) { actions.erase(actions.begin() + index); }

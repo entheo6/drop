@@ -117,6 +117,9 @@ void CustomActions::recordAction()
 		std::getline(std::cin, id);
 	}
 
+	if (id.length() > MAX_ID_LENGTH)
+		id = id.substr(0, MAX_ID_LENGTH);
+
 	actionBuffer.setId(id);
 
 	system("cls");
@@ -130,10 +133,10 @@ void CustomActions::recordAction()
 
 		std::cout << "\n\n\n" << printer.MARGIN_CONTENT << "New custom action: " << id << "\n\n"
 
-			<< printer.MARGIN_CONTENT << "1. View steps\n"
-			<< printer.MARGIN_CONTENT << "2. Change delay\n"
-			<< printer.MARGIN_CONTENT << "3. Cancel, discard\n"
-			<< printer.MARGIN_CONTENT << "4. Done, save custom action\n\n\n\n";
+			<< printer.MARGIN_CONTENT << "[1] : View steps\n"
+			<< printer.MARGIN_CONTENT << "[2] : Change delay\n"
+			<< printer.MARGIN_CONTENT << "[3] : Cancel, discard\n"
+			<< printer.MARGIN_CONTENT << "[4] : Done, save custom action\n\n\n\n";
 
 		printer.printText(printer.BOUNDARY_BOTTOM);
 

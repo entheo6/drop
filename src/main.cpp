@@ -12,8 +12,10 @@
 #include <shellapi.h>
 #include <mmsystem.h>
 
+#include "vec2.h"
 #include "resource.h"
 #include "custom_actions.h"
+#include "persistence.h"
 #include "printer.h"
 
 #pragma comment(lib, "winmm.lib")
@@ -31,15 +33,6 @@ enum FOCUS_TYPE
 	CONSOLE
 };
 
-struct vec2
-{
-	int x, y;
-
-	vec2()
-		:x(-1), y(-1){}
-	vec2(int a, int b) { x = a; y = b; }
-};
-
 struct GridMovement
 {
 	vec2 position;
@@ -55,11 +48,15 @@ struct GridMovement
 
 CustomActions customActions;
 
+Persistence persistence;
+
 Printer printer(&customActions);
 
 bool soundEnabled = true,
 	borderEnabled = false,
 	startHidden = false;
+
+bool config[] = { soundEnabled, borderEnabled, startHidden };
 
 std::atomic<bool> moving = false,
 				  firing = false,
@@ -104,8 +101,11 @@ HANDLE mutex;
 vec2 currentGridPos = vec2(0, 0);
 
 void sigint(int);
-void removeScrollBar();
+void removeScrollbar();
 void toggleBorder(bool);
+void hideCursor();
+void load();
+void save();
 bool initWindow();
 void resizeWindow();
 void resizeWindow(int, int);
@@ -152,15 +152,18 @@ int main()
 	bool letterDown[] = { false, false, false, false },
 		consoleSelectionMade = false;
 
+	// Load config and custom actions
+	load();
+
+	// Initialize console window, terminate if another instance is running
+	if (bAbort = initWindow())
+		return EXIT_SUCCESS;
+
 	// Build key-down map
 	std::unordered_map<unsigned int, bool> keyDown;
 
 	for (int i = 0; i < virtualKeys.size(); ++i)
 		keyDown[virtualKeys[i]] = false;
-
-	// Initialize console window, terminate if another instance is running
-	if (bAbort = initWindow())
-		return EXIT_SUCCESS;
 
 	// Program started indicator
 	Beep(700, 200);
@@ -236,29 +239,46 @@ int main()
 			if ((GetAsyncKeyState('A') & 0x8000) && !letterDown[0])
 			{
 				letterDown[0] = true;
-				std::stringstream ss("");
-				ss << printer.MARGIN_CONTENT << "Prepare to perform action in game.\n\n" << printer.MARGIN_CONTENT << "[n]ext, [c]ancel";
-				amendMainText(ss.str());
 
-				// Block until 'n' or 'c' pressed
-				char select = '\0';
-
-				while (true)
+				if (customActions.getNumActions() < 6)
 				{
-					select = _getch();
+					std::stringstream ss("");
+					ss << printer.MARGIN_CONTENT << "Prepare to perform action in game.\n\n" << printer.MARGIN_CONTENT << "[n]ext, [c]ancel";
+					amendMainText(ss.str());
 
-					if (select == 'n' || select == 'c')
-						break;
+					// Block until 'n' or 'c' pressed
+					char select = '\0';
+
+					while (true)
+					{
+						select = _getch();
+
+						if (select == 'n' || select == 'c')
+							break;
+					}
+
+					// Begin new custom action creation
+					if (select == 'n')
+					{
+						customActions.recordAction();
+						save();
+					}
+
+					// Resize window based on number of custom actions
+					resizeWindow(windowWidth, BASE_WINDOW_HEIGHT + (WINDOW_HEIGHT_INCREMENT * customActions.getNumActions()));
+
+					consoleSelectionMade = true;
 				}
 
-				// Begin new custom action creation
-				if (select == 'n')
-					customActions.recordAction();
+				else
+				{
+					up(2);
+					std::cout << printer.backString << printer.MARGIN_CONTENT << ("(max custom actions reached)");
+					Sleep(PAUSE_DURATION);
+				}
 
-				// Resize window based on number of custom actions
-				resizeWindow(windowWidth, BASE_WINDOW_HEIGHT + (WINDOW_HEIGHT_INCREMENT * customActions.getNumActions()));
-
-				consoleSelectionMade = true;
+				system("cls");
+				printer.printText();
 			}
 
 			// Delete custom action
@@ -277,7 +297,7 @@ int main()
 
 					if (customActions.getNumActions() > 1)
 					{
-						std::cout << "Delete which? (press 1-" << customActions.getNumActions() << ")";
+						std::cout << "Delete which? (press 4-" << customActions.getNumActions()+3 << ")";
 
 						select = '\0';
 
@@ -285,9 +305,9 @@ int main()
 						{
 							select = _getch();
 
-						} while (select < '1' || select > '1' + (customActions.getNumActions() - 1));
+						} while (select < '4' || select > '4' + (customActions.getNumActions() - 1));
 
-						selectedIndex = (int)select - 49;
+						selectedIndex = (int)select - 52;
 					}
 
 					else
@@ -309,7 +329,10 @@ int main()
 					if (select == 'y')
 					{
 						if (selectedIndex < customActions.getNumActions())
+						{
 							customActions.remove(selectedIndex);
+							save();
+						}
 					}
 				}
 
@@ -338,7 +361,7 @@ int main()
 
 					if (customActions.getNumActions() > 1)
 					{
-						std::cout << "Modify which? (press 1-" << customActions.getNumActions() << ")";
+						std::cout << "Modify which? (press 4-" << customActions.getNumActions()+3 << ")";
 
 						select = '\0';
 
@@ -346,9 +369,9 @@ int main()
 						{
 							select = _getch();
 
-						} while (select < '1' || select > '1' + (customActions.getNumActions() - 1));
+						} while (select < '4' || select > '4' + (customActions.getNumActions() - 1));
 
-						selectedIndex = (int)select - 49;
+						selectedIndex = (int)select - 52;
 					}
 
 					else
@@ -368,7 +391,10 @@ int main()
 					} while (select != 'y' && select != 'n');
 
 					if (select == 'y')
+					{
 						customActions.modify(selectedIndex);
+						save();
+					}
 				}
 
 				else
@@ -393,7 +419,6 @@ int main()
 				{
 					system("cls");
 					printer.printText(printer.BANNER);
-					//up(2);
 					printer.printText(printer.BOUNDARY_TOP);
 					std::cout << "\n\n\n"
 
@@ -417,21 +442,30 @@ int main()
 					// Sound (1)
 					if (selection == '1')
 					{
-						soundEnabled = !soundEnabled;
+						config[0] = soundEnabled = !soundEnabled;
 					}
 
+					// Window border
 					else if (selection == '2')
 					{
-						toggleBorder(borderEnabled = !borderEnabled);
+						toggleBorder(config[1] = borderEnabled = !borderEnabled);
 					}
 
-					// Back
+					// Start hidden
+					else if (selection == '3')
+					{
+						config[2] = startHidden = !startHidden;
+					}
+
+					// Back (esc)
 					if (selection == char(27))
 						back = true;
 
 					if (back)
 						break;
 				}
+
+				save();
 
 				system("cls");
 				printer.printText();
@@ -442,21 +476,21 @@ int main()
 		for (int i = 0; i < virtualKeys.size(); ++i)
 		{
 			if (!(GetAsyncKeyState(virtualKeys[i]) & 0x8000) && keyDown[virtualKeys[i]])
-				keyDown[virtualKeys[i]] = false;
-
-			// Extra key-down flags for letters
-			if (!(GetAsyncKeyState('A') & 0x8000) && letterDown[0])
-				letterDown[0] = false;
-
-			if (!(GetAsyncKeyState('D') & 0x8000) && letterDown[1])
-				letterDown[1] = false;
-
-			if (!(GetAsyncKeyState('M') & 0x8000) && letterDown[2])
-				letterDown[2] = false;
-
-			if (!(GetAsyncKeyState('S') & 0x8000) && letterDown[3])
-				letterDown[3] = false;
+				keyDown[virtualKeys[i]] = false;			
 		}
+
+		// Extra key-down flags for letters
+		if (!(GetAsyncKeyState('A') & 0x8000) && letterDown[0])
+			letterDown[0] = false;
+
+		if (!(GetAsyncKeyState('D') & 0x8000) && letterDown[1])
+			letterDown[1] = false;
+
+		if (!(GetAsyncKeyState('M') & 0x8000) && letterDown[2])
+			letterDown[2] = false;
+
+		if (!(GetAsyncKeyState('S') & 0x8000) && letterDown[3])
+			letterDown[3] = false;
 
 		// Reset main text after returning from different console state
 		if (consoleSelectionMade)
@@ -527,6 +561,34 @@ void toggleBorder(bool enabled)
 	}
 }
 
+void hideCursor()
+{
+	// Hide cursor
+	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_CURSOR_INFO cursorInfo;
+	GetConsoleCursorInfo(out, &cursorInfo);
+	cursorInfo.bVisible = false;
+	SetConsoleCursorInfo(out, &cursorInfo);
+}
+
+void load()
+{
+	persistence.load(config, customActions.getActions());
+
+	soundEnabled = config[0];
+	borderEnabled = config[1];
+	startHidden = config[2];
+}
+
+void save()
+{
+	config[0] = soundEnabled;
+	config[1] = borderEnabled;
+	config[2] = startHidden;
+
+	persistence.save(config, customActions.getActions());
+}
+
 bool initWindow()
 {
 	// Multiple instance check
@@ -551,11 +613,14 @@ bool initWindow()
 	SetConsoleOutputCP(437);
 	system("title drop & color 04");
 
-	// Remove window border
-	toggleBorder(false);
+	if (!borderEnabled)
+	{
+		// Remove window border
+		toggleBorder(false);
 
-	// Remove scroll bar
-	removeScrollbar();
+		// Remove scroll bar
+		removeScrollbar();
+	}
 
 	// Set transparency
 	HWND window = GetConsoleWindow();
@@ -565,13 +630,6 @@ bool initWindow()
 	// Print main text
 	printer.printText();
 	resizeWindow();
-
-	// Hide cursor
-	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
-	CONSOLE_CURSOR_INFO cursorInfo;
-	GetConsoleCursorInfo(out, &cursorInfo);
-	cursorInfo.bVisible = false;
-	SetConsoleCursorInfo(out, &cursorInfo);
 
 	// Spawn visibility thread
 	windowVisible = !startHidden;
@@ -590,6 +648,7 @@ void resizeWindow()
 	MoveWindow(window, (GetSystemMetrics(SM_CXSCREEN) - windowWidth) / 2, (GetSystemMetrics(SM_CYSCREEN) - windowHeight) / 2, windowWidth, windowHeight, TRUE);
 
 	scrollUp();
+	hideCursor();
 }
 
 void resizeWindow(int width, int height)
