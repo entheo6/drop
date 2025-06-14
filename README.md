@@ -1,6 +1,6 @@
 # drop  
   
-<i>Minecraft auto crafter utility.</i>
+<i>Minecraft auto crafter utility.</i> [[Demo Video]](https://www.youtube.com/watch?v=J2l9Be052Lw)
 
 <sub>(close recipe book first)</sub>
 
