@@ -9,3 +9,6 @@ Implement custom actions, update UI, add settings screen, modify directory struc
 
 -- v1.04
 Implement config persistence.
+
+-- v1.05
+Add sound.

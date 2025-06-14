@@ -1,5 +1,6 @@
 *.vcxproj* 
-/Debug
+/debug
+/res/audio
 /Release/*
 !/Release/*.exe
 *.aps

@@ -31,7 +31,6 @@ void CustomActions::recordAction()
 
 	printer.printText(printer.BOUNDARY_BOTTOM);
 
-
 	// Block until esc or f10 pressed
 	while (true)
 	{
@@ -42,8 +41,6 @@ void CustomActions::recordAction()
 			break;
 	}
 
-	Beep(700, 100);
-	Beep(750, 100);
 	system("cls");
 
 	printer.printText(printer.BANNER);
@@ -59,6 +56,8 @@ void CustomActions::recordAction()
 	printer.printText(printer.BOUNDARY_BOTTOM);
 
 	up(5);
+
+	pSound->playSound(pSound->START);
 
 	while (true)
 	{
@@ -82,7 +81,6 @@ void CustomActions::recordAction()
 			GetCursorPos(&cursorPos);
 			actionBuffer.pushStep((shift ? SHIFT_CLICK : (left ? LEFT_CLICK : RIGHT_CLICK)), vec2(cursorPos.x, cursorPos.y));
 			std::cout << BACK_STRING << "\b\b\b\b\b\b\b\b" << printer.MARGIN_CONTENT << ++count << " event" << (count+1 != 1 ? "s" : "") << " recorded";
-			//PlaySound(MAKEINTRESOURCE(IDR_WAVE2), GetModuleHandle(NULL), SND_RESOURCE | SND_SYNC);
 		}
 
 		if (GetAsyncKeyState(VK_F10))
@@ -90,16 +88,22 @@ void CustomActions::recordAction()
 
 		if (GetAsyncKeyState(VK_ESCAPE))
 		{
-			Beep(750, 100);
-			Beep(600, 100);
 			std::cout << BACK_STRING << "\b\b\b\b\b\b\b\b" << printer.MARGIN_CONTENT << "Aborting...\n\n";
+			pSound->playSound(pSound->CANCEL);
 			Sleep(PAUSE_DURATION);
 			return;
 		}
 	}
 
-	Beep(750, 100);
-	Beep(700, 100);
+	if (!count)
+	{
+		std::cout << BACK_STRING << "\b\b\b\b\b\b\b\b" << printer.MARGIN_CONTENT << "(no events recorded)\n\n";
+		pSound->playSound(pSound->CANCEL);
+		Sleep(PAUSE_DURATION);
+		return;
+	}
+
+	pSound->playSound(pSound->STOP);
 
 	SetForegroundWindow(GetConsoleWindow());
 
@@ -202,8 +206,12 @@ void CustomActions::recordAction()
 
 	} while (selection != '3' && selection != '4');
 
+	// Cancel (3)
+	if (selection == '3')
+		pSound->playSound(pSound->CANCEL);
+
 	// Done, add new action (4)
-	if (selection == '4')
+	else if (selection == '4')
 	{
 		pushAction(actionBuffer);
 		up(3);

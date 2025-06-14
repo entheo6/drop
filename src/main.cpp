@@ -17,9 +17,9 @@
 #include "custom_actions.h"
 #include "persistence.h"
 #include "printer.h"
+#include "sound.h"
 
 #pragma comment(lib, "winmm.lib")
-
 
 enum LOOK_DIR
 {
@@ -46,15 +46,18 @@ struct GridMovement
 
 //std::vector<GridMovement[]> charPatterns;
 
-CustomActions customActions;
+bool soundEnabled = true,
+borderEnabled = false,
+startHidden = false;
 
 Persistence persistence;
 
+Sound sound(&soundEnabled);
+
+CustomActions customActions;
+
 Printer printer(&customActions);
 
-bool soundEnabled = true,
-	borderEnabled = false,
-	startHidden = false;
 
 bool config[] = { soundEnabled, borderEnabled, startHidden };
 
@@ -107,6 +110,7 @@ void hideCursor();
 void load();
 void save();
 bool initWindow();
+void playInitSound();
 void resizeWindow();
 void resizeWindow(int, int);
 void scrollUp();
@@ -159,14 +163,24 @@ int main()
 	if (bAbort = initWindow())
 		return EXIT_SUCCESS;
 
+	// Program started indicator
+	if (soundEnabled)
+	{
+		std::thread initSound(playInitSound);
+		initSound.detach();
+	}
+
+	// Print init animation
+	printer.init();
+
 	// Build key-down map
 	std::unordered_map<unsigned int, bool> keyDown;
 
 	for (int i = 0; i < virtualKeys.size(); ++i)
 		keyDown[virtualKeys[i]] = false;
 
-	// Program started indicator
-	Beep(700, 200);
+	// Give custom actions sound object pointer
+	customActions.giveSound(&sound);
 
 	/*
 		Poll key combos
@@ -307,7 +321,7 @@ int main()
 
 						} while (select < '4' || select > '4' + (customActions.getNumActions() - 1));
 
-						selectedIndex = (int)select - 52;
+						selectedIndex = (int)select - 52;	
 					}
 
 					else
@@ -351,6 +365,8 @@ int main()
 			{
 				letterDown[2] = true;
 
+				
+
 				up(2);
 				std::cout << printer.backString << printer.MARGIN_CONTENT;
 
@@ -372,6 +388,8 @@ int main()
 						} while (select < '4' || select > '4' + (customActions.getNumActions() - 1));
 
 						selectedIndex = (int)select - 52;
+
+						
 					}
 
 					else
@@ -389,6 +407,8 @@ int main()
 						select = _getch();
 
 					} while (select != 'y' && select != 'n');
+
+					
 
 					if (select == 'y')
 					{
@@ -414,6 +434,8 @@ int main()
 
 				bool back = false;
 				char selection = '\0';
+
+				
 
 				while (true)
 				{
@@ -502,8 +524,11 @@ int main()
 	}
 
 	// Program terminated indicator
-	Beep(620, 200);
-	std::cout << "\n  End\n";
+	if (soundEnabled)
+	{
+		ShowWindow(GetConsoleWindow(), SW_HIDE);
+		sound.playSound(sound.CLOSE);
+	}
 
 	// Debug
 	//while (true)
@@ -628,7 +653,7 @@ bool initWindow()
 	SetLayeredWindowAttributes(window, 0, WINDOW_ALPHA, LWA_ALPHA);
 
 	// Print main text
-	printer.printText();
+	//printer.printText();
 	resizeWindow();
 
 	// Spawn visibility thread
@@ -638,6 +663,11 @@ bool initWindow()
 	visibilityThread.detach();
 
 	return false;
+}
+
+void playInitSound()
+{
+	PlaySound(MAKEINTRESOURCE((startHidden ? IDR_WAVE2 : IDR_WAVE1)), GetModuleHandle(NULL), SND_RESOURCE | SND_SYNC);
 }
 
 void resizeWindow()

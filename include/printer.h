@@ -7,6 +7,9 @@ class CustomActions;
 class Printer
 {
 private:
+	const int PAUSE_INIT = 100,
+		PAUSE_DEFAULT = 60,
+		PAUSE_SHORT = 40;
 	const char* MARGIN_BANNER = "                                                 ";
 
 	char bar1 = static_cast<char>(176),
@@ -34,6 +37,8 @@ public:
 
 	Printer() {}
 	Printer(CustomActions*);
+	Printer& operator=(const Printer&);
 	void printText(TEXT_TYPE);
 	void printText();
+	void init();
 };

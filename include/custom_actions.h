@@ -9,6 +9,7 @@
 
 #include "vec2.h"
 #include "printer.h"
+#include "sound.h"
 
 class CustomActions
 {
@@ -75,6 +76,8 @@ private:
 
 	const char* BACK_STRING = "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b                                                                                   \b\b\b	\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b";
 
+	Sound* pSound;
+
 	Printer printer;
 
 	inline void pushAction(Action arg) { actions.push_back(arg); }
@@ -88,6 +91,7 @@ public:
 	inline int getNumActions() { return actions.size(); }
 	inline const char* getActionName(int index) { return actions[index].id.c_str(); }
 	inline void remove(int index) { actions.erase(actions.begin() + index); }
+	inline void giveSound(Sound* ptr) { pSound = ptr; }
 
 	void recordAction();
 	void execute(int);
